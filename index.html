@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+ <title>Protatodex</title>
+ <style>
+   :root {
+     --bg-dark: #0a0d14;
+     --card-bg: rgba(22, 28, 45, 0.65);
+     --card-border: rgba(255, 255, 255, 0.1);
+     --accent-green: #38ef7d;
+     --accent-blue: #11998e;
+     --text-main: #f0f4f8;
+     --text-muted: #94a3b8;
+   }
+
+   * {
+     box-sizing: border-box;
+     margin: 0;
+     padding: 0;
+     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+   }
+
+   body {
+     background: var(--bg-dark);
+     color: var(--text-main);
+     min-height: 100vh;
+     padding: clamp(12px, 3vw, 24px);
+     background-image:
+       radial-gradient(circle at 10% 10%, rgba(56, 239, 125, 0.05) 0%, transparent 40%),
+       radial-gradient(circle at 90% 90%, rgba(17, 153, 142, 0.05) 0%, transparent 40%);
+     background-attachment: fixed;
+     overflow-x: hidden;
+   }
+
+   .container {
+     max-width: 1000px;
+     margin: 0 auto;
+     width: 100%;
+   }
+
+   header {
+     text-align: center;
+     margin-bottom: 20px;
+   }
+
+   h1 {
+     font-size: clamp(1.8rem, 5vw, 2.8rem);
+     background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+     -webkit-background-clip: text;
+     -webkit-text-fill-color: transparent;
+     margin-bottom: 8px;
+   }
+
+   p.subtitle {
+     color: var(--text-muted);
+     font-size: clamp(0.85rem, 2.5vw, 1rem);
+   }
+
+   /* Controls Panel */
+   .controls {
+     background: var(--card-bg);
+     backdrop-filter: blur(12px);
+     -webkit-backdrop-filter: blur(12px);
+     border: 1px solid var(--card-border);
+     border-radius: 16px;
+     padding: clamp(12px, 2.5vw, 20px);
+     margin-bottom: 24px;
+     display: flex;
+     flex-direction: column;
+     gap: 12px;
+     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+   }
+
+   .search-sort {
+     display: flex;
+     gap: 10px;
+     flex-wrap: wrap;
+   }
+
+   input[type="text"], select {
+     background: rgba(0, 0, 0, 0.4);
+     border: 1px solid var(--card-border);
+     color: var(--text-main);
+     padding: 12px 16px;
+     border-radius: 10px;
+     font-size: 0.95rem;
+     outline: none;
+     transition: border-color 0.2s;
+   }
+
+   input[type="text"] {
+     flex: 1 1 200px;
+   }
+
+   select {
+     flex: 0 1 150px;
+     cursor: pointer;
+   }
+
+   input[type="text"]:focus, select:focus {
+     border-color: var(--accent-green);
+   }
+
+   .tag-filters {
+     display: flex;
+     flex-wrap: wrap;
+     gap: 8px;
+   }
+
+   .filter-chip {
+     background: rgba(255, 255, 255, 0.05);
+     border: 1px solid var(--card-border);
+     color: var(--text-muted);
+     padding: 6px 14px;
+     border-radius: 20px;
+     font-size: 0.8rem;
+     cursor: pointer;
+     user-select: none;
+     transition: all 0.2s ease;
+   }
+
+   .filter-chip.active {
+     background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+     color: #000;
+     font-weight: 600;
+     border-color: transparent;
+   }
+
+   /* Cards Grid */
+   .grid {
+     display: flex;
+     flex-direction: column;
+     gap: 16px;
+   }
+
+   .card {
+     background: var(--card-bg);
+     backdrop-filter: blur(10px);
+     -webkit-backdrop-filter: blur(10px);
+     border: 1px solid var(--card-border);
+     border-radius: 16px;
+     overflow: hidden;
+     transition: transform 0.2s ease, border-color 0.2s ease;
+   }
+
+   .card-header {
+     padding: clamp(14px, 3vw, 18px);
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+     cursor: pointer;
+     background: rgba(255, 255, 255, 0.02);
+   }
+
+   .card-title {
+     font-size: clamp(1.1rem, 3.5vw, 1.4rem);
+     font-weight: 700;
+     color: var(--text-main);
+     display: flex;
+     align-items: center;
+     gap: 10px;
+   }
+
+   .row-badge {
+     font-size: 0.75rem;
+     background: rgba(255, 255, 255, 0.1);
+     padding: 2px 8px;
+     border-radius: 6px;
+     color: var(--text-muted);
+   }
+
+   .toggle-icon {
+     font-size: 1.2rem;
+     transition: transform 0.3s ease;
+   }
+
+   .card.open .toggle-icon {
+     transform: rotate(180deg);
+   }
+
+   .card-body {
+     max-height: 0;
+     overflow: hidden;
+     transition: max-height 0.4s cubic-bezier(0, 1, 0, 1);
+     padding: 0 clamp(14px, 3vw, 18px);
+   }
+
+   .card.open .card-body {
+     max-height: 3000px;
+     padding: 0 clamp(14px, 3vw, 18px) clamp(14px, 3vw, 18px);
+     transition: max-height 0.4s cubic-bezier(1, 0, 1, 0);
+   }
+
+   .build-list {
+     display: flex;
+     flex-direction: column;
+     gap: 14px;
+     margin-top: 10px;
+   }
+
+   .build-item {
+     background: rgba(0, 0, 0, 0.3);
+     border: 1px solid rgba(255, 255, 255, 0.05);
+     border-radius: 12px;
+     padding: 12px 14px;
+   }
+
+   .build-header {
+     display: flex;
+     justify-content: space-between;
+     align-items: flex-start;
+     flex-wrap: wrap;
+     gap: 8px;
+     margin-bottom: 6px;
+   }
+
+   .build-name {
+     font-weight: 600;
+     font-size: 0.95rem;
+     color: var(--accent-green);
+   }
+
+   .build-tags {
+     display: flex;
+     flex-wrap: wrap;
+     gap: 4px;
+   }
+
+   .tag-pill {
+     font-size: 0.7rem;
+     padding: 2px 8px;
+     border-radius: 10px;
+     background: rgba(56, 239, 125, 0.15);
+     color: var(--accent-green);
+     border: 1px solid rgba(56, 239, 125, 0.3);
+   }
+
+   .build-desc {
+     font-size: 0.85rem;
+     color: #cbd5e1;
+     line-height: 1.4;
+     margin-bottom: 8px;
+   }
+
+   .build-meta {
+     display: flex;
+     gap: 12px;
+     flex-wrap: wrap;
+     font-size: 0.78rem;
+   }
+
+   .meta-box {
+     background: rgba(255, 255, 255, 0.03);
+     padding: 4px 8px;
+     border-radius: 6px;
+   }
+
+   .meta-box.bans {
+     color: #fca5a5;
+   }
+
+   .meta-box.unlocks {
+     color: #fde047;
+   }
+
+   @media (max-width: 600px) {
+     .controls {
+       padding: 12px;
+     }
+     .build-header {
+       flex-direction: column;
+     }
+   }
+ </style>
+</head>
+<body>
+
+ <div class="container">
+   <header>
+     <h1>Protatodex</h1>
+     <p class="subtitle">Unbeaten Character Build Index & Unlock Guide</p>
+   </header>
+
+   <div class="controls">
+     <div class="search-sort">
+       <input type="text" id="searchInput" placeholder="Search character, weapon, or tag..." />
+       <select id="sortSelect">
+         <option value="row">Default Row Order</option>
+         <option value="name">Name (A-Z)</option>
+       </select>
+     </div>
+
+     <div class="tag-filters" id="tagFilters">
+       <span class="filter-chip active" data-tag="ALL">All Tags</span>
+       <span class="filter-chip" data-tag="Immortal / Standstill">Immortal / Standstill</span>
+       <span class="filter-chip" data-tag="Life Steal">Life Steal</span>
+       <span class="filter-chip" data-tag="Explosive / AoE">Explosive / AoE</span>
+       <span class="filter-chip" data-tag="Economy / Harvest">Economy / Harvest</span>
+       <span class="filter-chip" data-tag="Structures / AFK">Structures / AFK</span>
+       <span class="filter-chip" data-tag="Ranged Cleaver">Ranged Cleaver</span>
+     </div>
+   </div>
+
+   <div class="grid" id="characterGrid"></div>
+ </div>
+
+ <script>
+   const characterData = [
+     {
+       name: "Crazy", row: "Row 1",
+       builds: [
+         { name: "6x Lightning Dagger (Crit Life Steal)", tags: ["Immortal / Standstill", "Life Steal"], desc: "High crit chance triggers lightning bolts to clear waves passively while massive Life Steal keeps you at full HP. Stand in the center and let crits wipe the map.", bans: "Ranged Damage, Harvesting, Range", unlocks: "Lightning Dagger" },
+         { name: "6x Scissors (Lifesteal & Harvesting)", tags: ["Life Steal", "Economy / Harvest"], desc: "Scissors scale with Lifesteal and provide baseline harvesting. High attack speed keeps your health capped constantly without stepping aside.", bans: "Engineering, Range, Elemental Damage", unlocks: "Scissors" },
+         { name: "6x Thief Dagger (Economy Tank)", tags: ["Economy / Harvest", "Immortal / Standstill"], desc: "Yields materials on crit kills. Dump extra gold straight into Max HP, Armor, and HP Regeneration so you become an unkillable sponge by Wave 12.", bans: "Ranged Damage, Elemental Damage, Engineering", unlocks: "Thief Dagger" },
+         { name: "6x Knife (Precision Crit)", tags: ["Immortal / Standstill"], desc: "Knife base damage multiplies heavily on crit. Max out Armor, Dodge, and Crit Chance to shred Elites while standing ground.", bans: "Elemental Damage, Range", unlocks: "Knife" },
+         { name: "6x Shuriken (Bounce Clear)", tags: ["Ranged Cleaver"], desc: "Shurikens bounce around the map automatically, clearing enemies far away while you sit safely in one spot stacking HP and Dodge.", bans: "Melee Damage, Elemental Damage", unlocks: "Shuriken" }
+       ]
+     },
+     {
+       name: "Ranger", row: "Row 1",
+       builds: [
+         { name: "6x SMG (Life Steal Engine)", tags: ["Life Steal", "Immortal / Standstill"], desc: "Absurd fire rate combined with even 5–10% Life Steal heals you back to full instantly every time you take a hit.", bans: "Melee Damage, Engineering, Elemental Damage", unlocks: "SMG" },
+         { name: "6x Shredder (Explosion Stun)", tags: ["Explosive / AoE"], desc: "AoE ranged explosions clear screen clutter before enemies reach you. Stack HP and Armor to easily soak stray projectiles.", bans: "Melee Damage, Attack Speed, Life Steal", unlocks: "Shredder" },
+         { name: "6x Crossbow (Range & HP Scaling)", tags: ["Ranged Cleaver", "Immortal / Standstill"], desc: "Crossbow scales off Range. You sniper enemies from off-screen, giving you zero pressure to move.", bans: "Melee Damage, Elemental Damage", unlocks: "Crossbow" },
+         { name: "6x Revolver (Single-Target Melt)", tags: ["Ranged Cleaver"], desc: "High base damage wipes tough targets instantly. Grab Snail (unlocked by winning with Old) to slow enemies down so you don't need to dodge.", bans: "Melee Damage, Engineering", unlocks: "Snail (Win with Old)" },
+         { name: "6x Medical Gun (Over-Healing Tank)", tags: ["Immortal / Standstill", "Life Steal"], desc: "Scales with HP Regen and heals you on hit. Provides infinite sustain so you can literally stand still through boss fights.", bans: "Melee Damage, Dodge", unlocks: "Medical Gun" }
+       ]
+     },
+     {
+       name: "Chunky", row: "Row 1",
+       builds: [
+         { name: "6x Chopper (HP Scaling Cleave)", tags: ["Immortal / Standstill"], desc: "Chopper damage scales directly with Max HP, matching Chunky’s innate HP bonus. Stack Max HP and consumable healing to become unkillable.", bans: "Dodge, Speed, Life Steal", unlocks: "Chopper (Win with Multitasker)" },
+         { name: "6x Potato Thrower (Max HP Ranged Tank)", tags: ["Immortal / Standstill"], desc: "Potato Thrower damage scales directly off Max HP. Shoot high-damage projectiles while dumping all stats into pure HP and Armor.", bans: "Dodge, Speed", unlocks: "Potato Thrower" },
+         { name: "6x Rock (Immortal Defense Stack)", tags: ["Immortal / Standstill"], desc: "Rocks give huge flat passive Max HP and Armor set bonuses. You become a literal brick wall that enemies crash into and die.", bans: "Dodge, Speed, Attack Speed", unlocks: "Rock" },
+         { name: "6x Shield (Armor Scaler)", tags: ["Immortal / Standstill"], desc: "Scales damage off Armor while providing inherent defensive stats.", bans: "Dodge, Speed", unlocks: "Spiky Shield (Win with Masochist)" },
+         { name: "6x Fist / Power Fist (Knockback Standstill)", tags: ["Immortal / Standstill"], desc: "High knockback pushes enemies away before they touch you, giving consumables time to drop and heal you instantly.", bans: "Dodge, Speed, Life Steal", unlocks: "Power Fist (Win with Brawler)" }
+       ]
+     },
+     {
+       name: "Lucky", row: "Row 1",
+       builds: [
+         { name: "6x Slingshot (Bounce Economy)", tags: ["Economy / Harvest", "Explosive / AoE"], desc: "Lucky damages enemies whenever materials drop. Slingshots bounce across waves, generating continuous material drops and triggering screens-wide passive damage.", bans: "Melee Damage, Ranged Damage", unlocks: "Slingshot" },
+         { name: "6x Screwdriver (Turret & Tree Luck)", tags: ["Structures / AFK"], desc: "Spawns landmines and trees. Picking up materials from crates nukes the board automatically.", bans: "Melee Damage, Attack Speed", unlocks: "Screwdriver" },
+         { name: "6x Chopper (Consumable Healing)", tags: ["Immortal / Standstill"], desc: "High luck spawns tons of fruit crates. Chopper and High Luck heal you completely every few seconds.", bans: "Ranged Damage, Elemental Damage", unlocks: "Chopper (Win with Multitasker)" },
+         { name: "6x Fist (Knockback Luck)", tags: ["Immortal / Standstill"], desc: "Pushes enemies back into material pick-ups, constantly proccing your passive Luck damage explosion.", bans: "Elemental Damage, Range", unlocks: "Fist" },
+         { name: "6x Cyberball / Elephant Passive Stack", tags: ["Explosive / AoE"], desc: "Maximize Luck stat directly. Items like Cyberball and Baby Elephant do the killing for you every time items drop.", bans: "Melee Damage, Ranged Damage, Engineering", unlocks: "Cyberball / Baby Elephant" }
+       ]
+     },
+     {
+       name: "Generalist", row: "Row 1",
+       builds: [
+         { name: "3x Slingshot + 3x Cacti Club (Hybrid Balance)", tags: ["Immortal / Standstill"], desc: "Perfectly balances 3 Melee and 3 Ranged weapons. High output clears waves instantly, letting you stand in safety.", bans: "Engineering, Elemental Damage", unlocks: "Cacti Club" },
+         { name: "3x Shotgun + 3x Spear (Keep Away)", tags: ["Ranged Cleaver"], desc: "Spears keep melee enemies far away while Shotguns blast mid-range targets before they approach.", bans: "Engineering, Elemental Damage", unlocks: "Shotgun / Spear" },
+         { name: "3x Lightning Dagger + 3x SMG (Proc Machine)", tags: ["Life Steal"], desc: "Rapid hitting weapons proc massive Life Steal and elemental chains to keep your HP maxed constantly.", bans: "Engineering, Range", unlocks: "SMG / Lightning Dagger" },
+         { name: "3x Scissors + 3x Medical Gun (Pure Sustain)", tags: ["Life Steal", "Immortal / Standstill"], desc: "Stacks massive flat HP Regeneration and Life Steal from both weapon sets, making you immune to chip damage.", bans: "Engineering, Elemental Damage", unlocks: "Scissors / Medical Gun" },
+         { name: "3x Knife + 3x Crossbow (Crit Sniper)", tags: ["Ranged Cleaver"], desc: "High crit chance clears the screen off-board so you never need to reposition.", bans: "Engineering, Life Steal", unlocks: "Knife / Crossbow" }
+       ]
+     },
+     {
+       name: "Loud", row: "Row 1",
+       builds: [
+         { name: "6x Thief Dagger (Ultra Gold Harvester)", tags: ["Economy / Harvest", "Immortal / Standstill"], desc: "Loud spawns 50% more enemies. Thief Daggers turn those extra enemies into endless gold, allowing you to buy every HP, Armor, and Defense item in the shop.", bans: "Ranged Damage, Elemental Damage", unlocks: "Thief Dagger" },
+         { name: "6x Slingshot (Screen Clear)", tags: ["Explosive / AoE"], desc: "Bouncing projectiles obliterate high enemy density before they reach the center of the map.", bans: "Melee Damage, Engineering", unlocks: "Slingshot" },
+         { name: "6x Shredder (AoE Firestorm)", tags: ["Explosive / AoE"], desc: "Explosions overlap constantly with the increased enemy density, wiping entire waves simultaneously.", bans: "Melee Damage, Life Steal", unlocks: "Shredder" },
+         { name: "6x Lightning Dagger (Chain Healing)", tags: ["Life Steal"], desc: "Chains lightning across massive horde sizes, proccing non-stop Life Steal hits to heal any damage taken instantly.", bans: "Range, Ranged Damage", unlocks: "Lightning Dagger" },
+         { name: "6x Ethereal Axe (Infinite Damage Stack)", tags: ["Immortal / Standstill"], desc: "Ethereal Axes gain permanent damage per kill. With extra enemy spawns, your damage scales to ridiculous levels by wave 10.", bans: "Engineering, Elemental Damage", unlocks: "Ethereal Axe" }
+       ]
+     },
+     {
+       name: "Multitasker", row: "Row 1",
+       builds: [
+         { name: "12x Sticks (Scaling Monster)", tags: ["Immortal / Standstill"], desc: "Sticks gain bonus damage for every other Stick equipped. Carrying 12 gives an astronomical flat damage boost without needing offensive shop items—dump everything into HP and Armor.", bans: "Ranged Damage, Elemental Damage, Engineering", unlocks: "Stick" },
+         { name: "12x SMGs (Bullet Storm)", tags: ["Life Steal"], desc: "Unloads hundreds of rounds per second. Grab 1–2% Life Steal to become completely immortal.", bans: "Melee Damage, Engineering", unlocks: "SMG" },
+         { name: "12x Slingshots (Bouncing Wall)", tags: ["Ranged Cleaver"], desc: "Creates a wall of bouncing rocks that prevents any enemy from stepping into your half of the arena.", bans: "Melee Damage, Engineering", unlocks: "Slingshot" },
+         { name: "12x Choppers (Health & HP Regen)", tags: ["Immortal / Standstill"], desc: "Combines weapon set HP bonuses with massive Cleave to heal on every sweep.", bans: "Ranged Damage, Elemental Damage", unlocks: "Chopper (Win with Multitasker)" },
+         { name: "12x Pistols (Knockback Ring)", tags: ["Immortal / Standstill"], desc: "12 Pistols firing creates an impenetrable knockback ring that holds enemies out of range indefinitely.", bans: "Melee Damage, Elemental Damage", unlocks: "Pistol" }
+       ]
+     },
+     {
+       name: "Wildling", row: "Row 1",
+       builds: [
+         { name: "6x Sticks (Primitive Scaling)", tags: ["Life Steal", "Immortal / Standstill"], desc: "Wildling gains innate Life Steal with Primitive weapons. 6 Sticks provide massive baseline damage and instant HP sustain.", bans: "Tier 3+ Weapons, Ranged Damage, Engineering", unlocks: "Stick" },
+         { name: "6x Spears (Reach & Lifesteal)", tags: ["Life Steal"], desc: "Primitive weapon class benefits from Wildling's native Life Steal while extreme range keeps enemies at a distance.", bans: "Tier 3+ Weapons, Ranged Damage, Engineering", unlocks: "Spear" },
+         { name: "6x Slingshots (Ranged Primitive)", tags: ["Life Steal", "Ranged Cleaver"], desc: "Slingshots count as Primitive, granting you Wildling's life steal on ranged bounce hits.", bans: "Tier 3+ Weapons, Melee Damage", unlocks: "Slingshot" },
+         { name: "6x Claws (Crit & Attack Speed)", tags: ["Life Steal"], desc: "Rapid attacks stack constant critical hits and trigger huge life steal loops.", bans: "Tier 3+ Weapons, Ranged Damage", unlocks: "Claw (Win with Cryptid)" },
+         { name: "6x Hatchets (Melee Stacking)", tags: ["Life Steal"], desc: "Rapid melee strikes trigger high Life Steal uptime while scaling damage cleanly.", bans: "Tier 3+ Weapons, Ranged Damage", unlocks: "Hatchet (Win with Wildling)" }
+       ]
+     },
+     {
+       name: "Gladiator", row: "Row 1",
+       builds: [
+         { name: "5 Different Melee Weapons + Shield (Stat Stack)", tags: ["Immortal / Standstill"], desc: "Gladiator gains huge Attack Speed for every distinct weapon equipped. Equipping 5 different melee weapons provides massive attack speed while Shield adds Armor.", bans: "Ranged Weapons, Ranged Damage", unlocks: "Spiky Shield (Win with Masochist)" },
+         { name: "Unarmed Mix (Fist, Claw, Hands, Scissors, Power Fist)", tags: ["Life Steal"], desc: "Stacks huge attack speed multipliers while maintaining extreme Knockback and Life Steal.", bans: "Ranged Weapons, Engineering", unlocks: "Power Fist (Win with Brawler)" },
+         { name: "Blade Mix (Sword, Knife, Dagger, Sickle, Cleaver)", tags: ["Immortal / Standstill"], desc: "High innate Crit and Cleave. Max out HP and Armor to sit comfortably in the middle of waves.", bans: "Ranged Weapons, Engineering", unlocks: "Sword / Knife" },
+         { name: "Primitive Mix (Stick, Spear, Hatchet, Torch, Cactus Club)", tags: ["Immortal / Standstill"], desc: "Gain high Attack Speed, HP bonuses, and Range keep-away all simultaneously.", bans: "Ranged Weapons, Engineering", unlocks: "Primitive Set" },
+         { name: "Elemental Melee Mix (Thunder Sword, Lightning Dagger, Torch, Plank, Scythe)", tags: ["Explosive / AoE"], desc: "Wipes screens using automatic elemental procs while standing still.", bans: "Ranged Weapons, Ranged Damage", unlocks: "Thunder Sword (Win with Mage)" }
+       ]
+     },
+     {
+       name: "Sick", row: "Row 1",
+       builds: [
+         { name: "6x Scissors (Life Steal Engine)", tags: ["Life Steal", "Immortal / Standstill"], desc: "Sick bleeds health constantly (-12 HP Regen), but has +25% innate Life Steal. Scissors trigger high-frequency life steal hits to completely cancel out the self-damage.", bans: "HP Regeneration, Range", unlocks: "Scissors" },
+         { name: "6x Medical Guns (Ranged Healing)", tags: ["Life Steal"], desc: "Converts hits into direct HP recovery from a safe distance.", bans: "HP Regeneration, Melee Damage", unlocks: "Medical Gun" },
+         { name: "6x SMGs (Rapid Recovery)", tags: ["Life Steal"], desc: "Massive fire rate guarantees multiple life steal ticks per second to keep health topped off instantly.", bans: "HP Regeneration, Melee Damage", unlocks: "SMG" },
+         { name: "6x Slingshots (Group Healing)", tags: ["Life Steal", "Explosive / AoE"], desc: "Bouncing rocks strike multiple enemies, feeding life steal from whole groups at once.", bans: "HP Regeneration, Melee Damage", unlocks: "Slingshot" },
+         { name: "6x SMG + Whetstone Stack", tags: ["Life Steal", "Immortal / Standstill"], desc: "Collect Whetstone (unlocked by winning with Sick) to add flat Life Steal and Life-on-Crit to secure complete immortality.", bans: "HP Regeneration", unlocks: "Whetstone (Win with Sick)" }
+       ]
+     },
+     {
+       name: "Farmer", row: "Row 2",
+       builds: [
+         { name: "6x Pruning Shears (Garden Engine)", tags: ["Economy / Harvest", "Immortal / Standstill"], desc: "Spawns tons of gardens that drop consumable fruit across the map. Stand in a cluster of gardens and harvest free health and gold passively.", bans: "Ranged Damage, Engineering", unlocks: "Pruning Shears" },
+         { name: "6x Hands (Harvesting & Knockback)", tags: ["Economy / Harvest"], desc: "Grants extra Harvesting per wave while knocking back anything that approaches your garden zone.", bans: "Ranged Damage, Elemental Damage", unlocks: "Hands" },
+         { name: "6x Potato Thrower (Harvest Scaling)", tags: ["Immortal / Standstill"], desc: "Convert massive Harvesting funds into raw Max HP and let Potato Throwers clear enemies while you stand still.", bans: "Melee Damage, Speed", unlocks: "Potato Thrower" },
+         { name: "6x Slingshots (Wave Clear Economics)", tags: ["Economy / Harvest"], desc: "Provides reliable wave defense while your massive innate Harvesting stat builds insane gold reserves by wave 10.", bans: "Melee Damage, Engineering", unlocks: "Slingshot" },
+         { name: "6x Shield (Safe Turtle)", tags: ["Immortal / Standstill"], desc: "Buy Armor and HP with your endless Harvesting income. Shields guarantee you take 1-2 damage max per hit late game.", bans: "Ranged Damage", unlocks: "Shield" }
+       ]
+     },
+     {
+       name: "Ghost", row: "Row 2",
+       builds: [
+         { name: "6x Ethereal Flint (Attack Speed Stack)", tags: ["Immortal / Standstill"], desc: "Ghost starts with 60% Dodge automatically. Ethereal Flints permanently stack Attack Speed per kill, turning you into a stationary blender.", bans: "Armor, HP Regeneration", unlocks: "Ethereal Flint" },
+         { name: "6x Ethereal Axe (Flat Damage Stack)", tags: ["Immortal / Standstill"], desc: "Axes stack flat damage with every kill. Cap Dodge at 90% immediately, and enemies will miss almost every single hit.", bans: "Armor, HP Regeneration", unlocks: "Ethereal Axe" },
+         { name: "6x Ethereal Scepter (Max HP Stacking)", tags: ["Immortal / Standstill"], desc: "Scepters permanently increase your Max HP as enemies die, counteracting Ghost’s baseline HP penalty.", bans: "Armor, HP Regeneration", unlocks: "Ethereal Scepter" },
+         { name: "3x Ethereal Axe + 3x Ethereal Scepter (Balanced Growth)", tags: ["Immortal / Standstill"], desc: "Simultaneously builds massive damage and huge Max HP pools while relying on 90% Dodge for safety.", bans: "Armor, HP Regeneration", unlocks: "Ethereal Set" },
+         { name: "6x Flint + Ritual Item Stack", tags: ["Life Steal"], desc: "Buy Ritual (unlocked by winning with Ghost) to gain bonus % Damage and Life Steal while maintaining Dodge cap.", bans: "Armor", unlocks: "Ritual (Win with Ghost)" }
+       ]
+     },
+     {
+       name: "Speedy", row: "Row 2",
+       builds: [
+         { name: "6x Javelin (Movement-to-Damage)", tags: ["Ranged Cleaver"], desc: "Speedy scales damage with Speed. Javelins throw heavy piercing damage. Buy Fin (unlocked by winning with Speedy) for bonus speed and life steal.", bans: "Engineering, Range", unlocks: "Fin (Win with Speedy)" },
+         { name: "6x Shuriken (Crit & Speed)", tags: ["Ranged Cleaver"], desc: "High attack frequency clears waves off-screen. Dump points into Speed, Max HP, and Dodge.", bans: "Melee Damage, Elemental Damage", unlocks: "Shuriken" },
+         { name: "6x Lance (Charge Damage)", tags: ["Immortal / Standstill"], desc: "Scales heavily off Movement Speed. Deals huge burst damage if anything steps close to you.", bans: "Range, Ranged Damage", unlocks: "Lance" },
+         { name: "6x Slingshot (Safe Ranged)", tags: ["Ranged Cleaver"], desc: "Keeps enemies far away using bouncing rocks while your high Speed allows quick collection of materials at the end of waves.", bans: "Melee Damage, Engineering", unlocks: "Slingshot" },
+         { name: "6x Shredder (Fast Explosion)", tags: ["Explosive / AoE"], desc: "Uses high speed to easily dodge Elites while AoE explosions wipe standard mobs instantly.", bans: "Melee Damage, Life Steal", unlocks: "Shredder" }
+       ]
+     },
+     {
+       name: "Arms Dealer", row: "Row 2",
+       builds: [
+         { name: "Anvil-Focused Economy Build", tags: ["Immortal / Standstill", "Economy / Harvest"], desc: "Arms Dealer loses weapons every wave. Buy Anvil (unlocked by winning with Arms Dealer) to automatically upgrade replacement weapons for free every shop reset. Buy high Armor and HP stats to stay immortal regardless of weapon rolls.", bans: "Range, Harvesting", unlocks: "Anvil (Win with Arms Dealer)" },
+         { name: "High Harvesting Stacking", tags: ["Economy / Harvest"], desc: "Maximize Harvesting early so you have 300+ gold per shop turn to buy 6 cheap weapons every single wave without stress.", bans: "Range", unlocks: "Harvesting Items" },
+         { name: "Melee Lock-In (Reroll Pure Melee)", tags: ["Immortal / Standstill"], desc: "Only lock in Melee damage bonuses so any random Melee weapon bought hits like a truck.", bans: "Ranged Damage, Elemental Damage", unlocks: "Melee Weapons" },
+         { name: "Elemental Lock-In (Torches/Wrenches)", tags: ["Explosive / AoE"], desc: "Buy purely Elemental Damage stats. Torches, Snakes, and Scared Sausages carry the wave even if you get low-tier weapons.", bans: "Melee Damage, Ranged Damage", unlocks: "Torch / Snake" },
+         { name: "Turret / Landmine Buffer", tags: ["Structures / AFK"], desc: "Buy permanent Structures (Turrets and Landmines) from the shop. They stay on the field even when your weapons swap out each wave!", bans: "Melee Damage, Ranged Damage", unlocks: "Turrets / Landmines" }
+       ]
+     },
+     {
+       name: "Streamer", row: "Row 2",
+       builds: [
+         { name: "6x Wrenches (AFK Structure Turtle)", tags: ["Structures / AFK", "Immortal / Standstill"], desc: "Streamer generates massive money while standing completely still, but loses cash while moving. Build turrets around yourself and sit dead center.", bans: "Speed, Melee Damage, Ranged Damage", unlocks: "Wrench" },
+         { name: "6x Screwdrivers (Landmine Ring)", tags: ["Structures / AFK", "Explosive / AoE"], desc: "Spawns landmines right next to you while standing still. Enemies explode before reaching your hitboxes.", bans: "Speed, Melee Damage, Ranged Damage", unlocks: "Screwdriver" },
+         { name: "6x Armor & HP Regen Pure Defense", tags: ["Immortal / Standstill", "Economy / Harvest"], desc: "Collect interest on unspent materials. Use your massive income to stack 20+ Armor and 80+ Max HP.", bans: "Speed, Range", unlocks: "Defense Items" },
+         { name: "6x Slingshots (Ranged AFK)", tags: ["Immortal / Standstill"], desc: "Stand in place to stack income while Slingshots clear waves from a distance.", bans: "Speed, Melee Damage", unlocks: "Slingshot" },
+         { name: "Community Support Anchor", tags: ["Immortal / Standstill"], desc: "Grab Community Support (unlocked by winning with Streamer) to gain massive Attack Speed for every living enemy while sitting in place.", bans: "Speed", unlocks: "Community Support (Win with Streamer)" }
+       ]
+     },
+     {
+       name: "Glutton", row: "Row 2",
+       builds: [
+         { name: "6x Pruning Shears (Consumable Explosion)", tags: ["Explosive / AoE", "Immortal / Standstill"], desc: "Glutton explodes whenever picking up consumable fruit. Shears spawn gardens that create endless fruit directly under your feet, causing infinite AoE explosions.", bans: "Range, Engineering", unlocks: "Pruning Shears" },
+         { name: "6x Choppers (HP & Fruit Spawn)", tags: ["Explosive / AoE"], desc: "Chopper provides HP and extra consumable drops. Walk over fruit to blow up entire waves instantly.", bans: "Ranged Damage, Engineering", unlocks: "Chopper (Win with Multitasker)" },
+         { name: "6x Scissors (Lifesteal & Fruit)", tags: ["Life Steal", "Explosive / AoE"], desc: "High Lifesteal combined with fruit explosions creates a permanent loop of continuous healing and wave wiping.", bans: "Range, Engineering", unlocks: "Scissors" },
+         { name: "Spicy Sauce Stack", tags: ["Explosive / AoE"], desc: "Buy Spicy Sauce (unlocked by winning with Glutton) to cause consumable fruit to deal massive scaling damage based on Max HP.", bans: "Engineering", unlocks: "Spicy Sauce (Win with Glutton)" },
+         { name: "6x Hands (Knockback to Fruit)", tags: ["Immortal / Standstill"], desc: "Knocks enemies back into your spawned fruit explosions, keeping your character completely safe.", bans: "Ranged Damage, Elemental Damage", unlocks: "Hands" }
+       ]
+     },
+     {
+       name: "Jack", row: "Row 2",
+       builds: [
+         { name: "6x Laser Guns (Elite Killer)", tags: ["Ranged Cleaver"], desc: "Jack spawns 75% fewer enemies, but they are much stronger. Laser Guns deal enormous single-target damage to eliminate them before they get close.", bans: "Attack Speed, Engineering", unlocks: "Laser Gun" },
+         { name: "6x Revolvers (Single-Target Melt)", tags: ["Ranged Cleaver"], desc: "Massive single-target damage destroys Elites and Bosses in seconds.", bans: "Engineering, Elemental Damage", unlocks: "Revolver" },
+         { name: "6x Crossbows (Range & Crit)", tags: ["Ranged Cleaver", "Immortal / Standstill"], desc: "Sniper target-rich Elites from across the screen without moving into danger.", bans: "Melee Damage, Engineering", unlocks: "Crossbow" },
+         { name: "Giant Belt Boss Melt", tags: ["Ranged Cleaver"], desc: "Equip Giant Belt (unlocked by winning with Jack) to deal 10% of current HP on crits to Bosses/Elites.", bans: "Engineering", unlocks: "Giant Belt (Win with Jack)" },
+         { name: "6x Spearguns (Pistol/Spear Balance)", tags: ["Ranged Cleaver"], desc: "Piercing shots deal high damage to the few dense lines of enemies Jack encounters.", bans: "Melee Damage, Engineering", unlocks: "Speargun" }
+       ]
+     },
+     {
+       name: "Lich", row: "Row 2",
+       builds: [
+         { name: "6x Scissors (Life Steal Passive Damage)", tags: ["Life Steal", "Immortal / Standstill"], desc: "Lich deals damage to a random enemy whenever you heal. High Lifesteal constantly heals you, triggering infinite automatic damage procs.", bans: "Dodge, Engineering", unlocks: "Scissors" },
+         { name: "6x Medical Guns (AFK Auto-Turret)", tags: ["Life Steal", "Structures / AFK"], desc: "Shooting enemies heals you, which triggers Lich's passive targeting bolt.", bans: "Dodge, Melee Damage", unlocks: "Medical Gun" },
+         { name: "Tentacle Lifesteal Stack", tags: ["Life Steal"], desc: "Equip Tentacle (unlocked by winning with Lich) to give all crit hits a 20% chance to heal 1 HP, triggering constant passive damage.", bans: "Dodge", unlocks: "Tentacle (Win with Lich)" },
+         { name: "6x Choppers (HP Regen & Consumables)", tags: ["Immortal / Standstill"], desc: "Maximize HP Regen and Consumable drops. Every fruit picked up triggers a massive damage proc across the screen.", bans: "Dodge, Ranged Damage", unlocks: "Chopper (Win with Multitasker)" },
+         { name: "6x SMGs (High-Frequency Healing)", tags: ["Life Steal"], desc: "Unloads rapid shots to trigger Lifesteal multiple times per second, obliterating entire waves passively.", bans: "Dodge, Melee Damage", unlocks: "SMG" }
+       ]
+     },
+     {
+       name: "Apprentice", row: "Row 2",
+       builds: [
+         { name: "6x Lightning Dagger (Level Scaling Machine)", tags: ["Life Steal"], desc: "Apprentice gains stats every time you level up. Rapid crit hits scale level growth quickly.", bans: "Range, Harvesting", unlocks: "Fighting Stick (Win with Apprentice)" },
+         { name: "6x Slingshots (Ranged Leveling)", tags: ["Ranged Cleaver"], desc: "Clears waves at range while stacking free Max HP and Melee/Ranged stats every level up.", bans: "Engineering", unlocks: "Slingshot" },
+         { name: "6x SMGs (Stat Dump Engine)", tags: ["Life Steal"], desc: "Fires fast to benefit from the massive flat ranged damage you naturally gain per level.", bans: "Melee Damage, Engineering", unlocks: "SMG" },
+         { name: "6x Spears (Safe Zoning)", tags: ["Immortal / Standstill"], desc: "Out-ranges enemies while benefiting from automatic melee stat scaling per level.", bans: "Engineering, Ranged Damage", unlocks: "Spear" },
+         { name: "6x Fighting Sticks (Stat Synergy)", tags: ["Immortal / Standstill"], desc: "Uses Apprentice’s native level gains to boost Fighting Stick’s weapon scaling.", bans: "Engineering", unlocks: "Fighting Stick (Win with Apprentice)" }
+       ]
+     },
+     {
+       name: "Cryptid", row: "Row 2",
+       builds: [
+         { name: "6x Claws (Tree Harvesting Spree)", tags: ["Economy / Harvest", "Immortal / Standstill"], desc: "Cryptid spawns massive amounts of trees. Claws clear trees and enemies instantly, granting huge attack speed bonuses.", bans: "Ranged Damage, Engineering", unlocks: "Claw (Win with Cryptid)" },
+         { name: "6x Pruning Shears (Garden & Tree Setup)", tags: ["Economy / Harvest", "Immortal / Standstill"], desc: "Fills the arena with trees and gardens, letting you stand in a permanent field of fruit and HP regen.", bans: "Ranged Damage, Engineering", unlocks: "Pruning Shears" },
+         { name: "6x Choppers (HP Recovery)", tags: ["Immortal / Standstill"], desc: "Scaled damage off tree density while harvesting fruit drops to stay at full health.", bans: "Ranged Damage, Engineering", unlocks: "Chopper (Win with Multitasker)" },
+         { name: "6x Sticks (Simple Melee Wall)", tags: ["Immortal / Standstill"], desc: "High base damage cuts down trees quickly to trigger Cryptid's health recovery buff.", bans: "Ranged Damage, Engineering", unlocks: "Stick" },
+         { name: "6x Axes (Cleave Tree Farmer)", tags: ["Economy / Harvest"], desc: "Cleaves both trees and enemies in single swings to keep your attack speed continuously capped.", bans: "Ranged Damage, Engineering", unlocks: "Axe" }
+       ]
+     },
+     {
+       name: "Fisherman", row: "Row 2",
+       builds: [
+         { name: "6x Spears (Bait Harvester)", tags: ["Immortal / Standstill"], desc: "Buying Bait increases damage but spawns tough Special enemies. Spears allow you to attack Special enemies safely from long range.", bans: "Engineering, Range", unlocks: "Spear" },
+         { name: "6x Shredders (Explosive Bait Defense)", tags: ["Explosive / AoE"], desc: "AoE explosions blow up incoming Special enemies immediately when the wave starts.", bans: "Melee Damage, Life Steal", unlocks: "Shredder" },
+         { name: "6x Slingshots (Bounce Keep-Away)", tags: ["Ranged Cleaver"], desc: "Bounces damage between regular mobs and Special enemies while keeping you at a safe distance.", bans: "Melee Damage, Engineering", unlocks: "Slingshot" },
+         { name: "6x SMGs (Bait Melt)", tags: ["Life Steal"], desc: "Focus-fires down Special enemies the second they spawn into the map.", bans: "Melee Damage, Engineering", unlocks: "SMG" },
+         { name: "6x Sticks (Cheap Stat Stacking)", tags: ["Economy / Harvest"], desc: "Low initial weapon investment lets you spend extra gold buying 5–10 Baits per shop turn for insane scaling.", bans: "Ranged Damage, Engineering", unlocks: "Stick" }
+       ]
+     },
+     {
+       name: "Gollum", row: "Row 3",
+       builds: [
+         { name: "6x Rocks (Ultimate Immortal Wall)", tags: ["Immortal / Standstill"], desc: "Golem cannot heal through normal means but gains massive passive stats. Rocks stack flat HP and Armor, making your effective health pool gigantic.", bans: "HP Regeneration, Life Steal, Dodge", unlocks: "Rock" },
+         { name: "6x Shields (Armor Scaler)", tags: ["Immortal / Standstill"], desc: "Converts your massive natural Armor pool into huge melee damage output.", bans: "HP Regeneration, Life Steal, Dodge", unlocks: "Spiky Shield (Win with Masochist)" },
+         { name: "6x Choppers (Max HP Scaling)", tags: ["Immortal / Standstill"], desc: "Scales damage directly from Golem's huge Max HP stat.", bans: "HP Regeneration, Life Steal, Dodge", unlocks: "Chopper (Win with Multitasker)" },
+         { name: "6x Screwdrivers (Armor Armor Turrets)", tags: ["Structures / AFK"], desc: "Engineering structures handle enemy waves while you soak hits effortlessly with 20+ Armor.", bans: "HP Regeneration, Life Steal, Dodge", unlocks: "Screwdriver" },
+         { name: "6x Potato Throwers (Ranged Tank)", tags: ["Immortal / Standstill"], desc: "Uses Golem’s giant Max HP pool to fire high-damage potato shots across the board.", bans: "HP Regeneration, Life Steal, Dodge", unlocks: "Potato Thrower" }
+       ]
+     },
+     {
+       name: "Bull", row: "Row 3",
+       builds: [
+         { name: "Pure Armor & HP Regen (No Weapons - Explosion Engine)", tags: ["Explosive / AoE", "Immortal / Standstill"], desc: "Bull cannot equip weapons! Taking damage triggers a massive explosive radial burst. Stack Armor, HP Regeneration, and Max HP. Walk into enemies (or stand still) to explode them continuously.", bans: "All Weapons, Dodge, Attack Speed, Range", unlocks: "Gnome (Win with Bull)" },
+         { name: "Blood Donation / Sacrificial Stacking", tags: ["Explosive / AoE"], desc: "Buy Blood Donation or Taro items. They deal 1 self-damage per second, triggering your explosion automatically every second without relying on enemy hits!", bans: "All Weapons, Dodge", unlocks: "Blood Donation / Taro" },
+         { name: "Consumable HP Tank", tags: ["Immortal / Standstill"], desc: "Buy items that spawn consumable fruit. Blow up enemies, walk over fruit to heal instantly, and repeat.", bans: "All Weapons, Dodge", unlocks: "Fruit Items" },
+         { name: "Maximum Elemental / Explosive Damage", tags: ["Explosive / AoE"], desc: "Buy Elemental Damage and Explosive Damage items (like Dynamite) to increase the explosion size and damage of your passive hit.", bans: "All Weapons, Dodge", unlocks: "Dynamite" },
+         { name: "Melee/Armor Synergy Sponge", tags: ["Immortal / Standstill"], desc: "Stack Melee Damage (which scales your explosion) and heavy Armor to soak boss hits without flinching.", bans: "All Weapons, Dodge", unlocks: "Melee Items" }
+       ]
+     },
+     {
+       name: "Demon", row: "Row 3",
+       builds: [
+         { name: "6x Slingshots (HP Economy)", tags: ["Economy / Harvest", "Ranged Cleaver"], desc: "Demon uses Max HP to buy shop items. Spend HP down to 1 each wave, then use Slingshots to collect materials and convert them back into Max HP at the end of the wave.", bans: "Melee Damage, Engineering", unlocks: "Slingshot" },
+         { name: "6x Scissors (Lifesteal Safety Net)", tags: ["Life Steal"], desc: "High Lifesteal immediately recovers any health lost during waves.", bans: "Range, Engineering", unlocks: "Scissors" },
+         { name: "6x Thief Daggers (Gold Engine)", tags: ["Economy / Harvest"], desc: "Yields extra gold on crit kills to buy even more items from the shop.", bans: "Ranged Damage, Engineering", unlocks: "Thief Dagger" },
+         { name: "6x Ghost Weapons (Ethereal HP Scaling)", tags: ["Immortal / Standstill"], desc: "Ethereal Scepters stack permanent Max HP per kill to recover the health spent in shops.", bans: "Armor, HP Regeneration", unlocks: "Ethereal Scepter" },
+         { name: "6x SMGs (Rapid Lifesteal)", tags: ["Life Steal"], desc: "Rapid fire restores your health pool to full within the first 3 seconds of a wave.", bans: "Melee Damage, Engineering", unlocks: "SMG" }
+       ]
+     },
+     {
+       name: "Vampire", row: "Row 3",
+       builds: [
+         { name: "6x Scissors (Double Life Steal Engine)", tags: ["Life Steal", "Immortal / Standstill"], desc: "Vampire gains extra stats when healing at full health. Scissors ensure continuous life steal triggers.", bans: "Engineering, Range", unlocks: "Scissors" },
+         { name: "6x SMGs (Bullet Storm Sustain)", tags: ["Life Steal"], desc: "Constant hits top off your health instantly, continually proccing Vampire's stat buffs.", bans: "Melee Damage, Engineering", unlocks: "SMG" },
+         { name: "6x Medical Guns (Overheal Stack)", tags: ["Life Steal"], desc: "Converts every shot into healing to maintain maximum stat bonuses throughout wave fights.", bans: "Melee Damage, Dodge", unlocks: "Medical Gun" },
+         { name: "6x Slingshots (Ranged Procs)", tags: ["Life Steal", "Ranged Cleaver"], desc: "Bouncing rocks trigger lifesteal across whole crowds of enemies simultaneously.", bans: "Melee Damage, Engineering", unlocks: "Slingshot" },
+         { name: "6x Lightning Daggers (Crit Healing)", tags: ["Life Steal"], desc: "High crit chains heal you back to 100% instantly on every strike.", bans: "Ranged Damage, Range", unlocks: "Lightning Dagger" }
+       ]
+     },
+     {
+       name: "Sailor (DLC)", row: "Row 3",
+       builds: [
+         { name: "6x Anchor / Naval Weapons (Curse Power)", tags: ["Immortal / Standstill"], desc: "Sailor gains massive damage bonuses against cursed enemies when using Naval weapons. Stand ground and sweep waves with high cleave.", bans: "Tier 1 Weapons, Harvesting, Dodge (capped at 20%)", unlocks: "Anchor" },
+         { name: "6x Boarding Axes (Naval Cleave)", tags: ["Immortal / Standstill"], desc: "High impact melee cleave destroys cursed crowds in front of you.", bans: "Tier 1 Weapons, Harvesting", unlocks: "Boarding Axe" },
+         { name: "6x Harpoons (Ranged Naval)", tags: ["Ranged Cleaver"], desc: "Spearing lines of cursed enemies before they approach your position.", bans: "Tier 1 Weapons, Harvesting", unlocks: "Harpoon" },
+         { name: "6x Pistols (Curse Proc Build)", tags: ["Ranged Cleaver"], desc: "Applies curses and picks off targets at range.", bans: "Tier 1 Weapons, Harvesting", unlocks: "Pistol" },
+         { name: "Curse Engine Stacking", tags: ["Explosive / AoE"], desc: "Focus on buying Curse-applying items; your high innate damage wipes the map automatically.", bans: "Tier 1 Weapons, Harvesting", unlocks: "Curse Items" }
+       ]
+     },
+     {
+       name: "Creature (DLC)", row: "Row 4",
+       builds: [
+         { name: "6x Claws (Mutant Cleave)", tags: ["Immortal / Standstill"], desc: "High attack frequency procs innate passive bonuses to clear screen clutter.", bans: "Engineering, Range", unlocks: "Claw (Win with Cryptid)" },
+         { name: "6x Slingshots (Ranged Bounce)", tags: ["Ranged Cleaver"], desc: "Bounces attacks across crowds while you stack Armor and HP.", bans: "Melee Damage, Engineering", unlocks: "Slingshot" },
+         { name: "6x Sticks (Cheap Stat Wall)", tags: ["Immortal / Standstill"], desc: "Low weapon investment allows maxing defensive stats early.", bans: "Ranged Damage, Engineering", unlocks: "Stick" },
+         { name: "6x Scissors (Life Steal Tank)", tags: ["Life Steal"], desc: "High-frequency life steal keeps your health capped constantly.", bans: "Range, Engineering", unlocks: "Scissors" },
+         { name: "6x Choppers (Consumable Sustain)", tags: ["Immortal / Standstill"], desc: "Spawns fruit drops to heal any damage taken while standing ground.", bans: "Ranged Damage, Engineering", unlocks: "Chopper (Win with Multitasker)" }
+       ]
+     },
+     {
+       name: "Chef (DLC)", row: "Row 4",
+       builds: [
+         { name: "6x Tazers (Massive Burning Engine)", tags: ["Explosive / AoE", "Immortal / Standstill"], desc: "Chef excels at burning enemies. Tazers inflict elemental burn across entire waves, causing enemies to burn out before reaching you.", bans: "Melee Damage, Physical Damage", unlocks: "Spoon (Win with Chef)" },
+         { name: "6x Torches (Melee Burn Sweep)", tags: ["Explosive / AoE"], desc: "Cleaves enemies in front of you, spreading massive fire damage across the map.", bans: "Physical Damage, Ranged Damage", unlocks: "Torch" },
+         { name: "6x Screwdrivers (Fire Minefield)", tags: ["Structures / AFK", "Explosive / AoE"], desc: "Spawns explosive burning landmines around your standing position.", bans: "Melee Damage, Ranged Damage", unlocks: "Screwdriver" },
+         { name: "6x Planks (Explosive Burn)", tags: ["Explosive / AoE"], desc: "Combines Melee and Elemental explosive burning damage.", bans: "Ranged Damage, Range", unlocks: "Plank" },
+         { name: "6x Scared Sausages / Snake Passive Stack", tags: ["Explosive / AoE"], desc: "Buy Scared Sausage and Snake items to cause all attacks to inflict burning screens-wide.", bans: "Physical Damage", unlocks: "Scared Sausage / Snake" }
+       ]
+     },
+     {
+       name: "Druid (DLC)", row: "Row 4",
+       builds: [
+         { name: "6x Pruning Shears (Infinite Fruit Garden)", tags: ["Economy / Harvest", "Immortal / Standstill"], desc: "Druid relies on consumables. Pruning Shears spawn dozens of gardens, covering the floor in fruit that grants HP, gold, and stats.", bans: "Ranged Damage, Engineering", unlocks: "Pruning Shears" },
+         { name: "6x Choppers (Consumable Scaling)", tags: ["Immortal / Standstill"], desc: "Converts high consumable pickup rates into flat damage and recovery.", bans: "Ranged Damage, Engineering", unlocks: "Chopper (Win with Multitasker)" },
+         { name: "6x Hands (Knockback Garden Defense)", tags: ["Immortal / Standstill"], desc: "Pushes enemies away from your garden patch while harvesting consumables underneath you.", bans: "Ranged Damage, Elemental Damage", unlocks: "Hands" },
+         { name: "6x Scissors (Lifesteal & Fruit)", tags: ["Life Steal"], desc: "Provides dual-sustain from both weapon life steal and ground fruit drops.", bans: "Range, Engineering", unlocks: "Scissors" },
+         { name: "Spicy Sauce / Consumable Nuke", tags: ["Explosive / AoE"], desc: "Collect Spicy Sauce (unlocked by winning with Glutton) to turn every fruit pickup into an explosive damage wave.", bans: "Engineering", unlocks: "Spicy Sauce (Win with Glutton)" }
+       ]
+     },
+     {
+       name: "Dwarf (DLC)", row: "Row 4",
+       builds: [
+         { name: "6x War Hammers (Massive Melee Cleave)", tags: ["Immortal / Standstill"], desc: "Dwarf scales with wide melee hits. War Hammer sweeps hit 25+ enemies at once, clearing entire waves in a single swing.", bans: "Ranged Damage, Speed", unlocks: "War Hammer (Win with Dwarf)" },
+         { name: "6x Spears (Screen-Wide Range Cleave)", tags: ["Immortal / Standstill"], desc: "Melee range stat increases reach, letting you sweep half the arena without moving an inch.", bans: "Ranged Damage, Speed", unlocks: "Spear" },
+         { name: "6x Axes (Cleave Damage Stacking)", tags: ["Immortal / Standstill"], desc: "Wide cleaving attacks wipe out enemy groups while building raw damage stats.", bans: "Ranged Damage, Speed", unlocks: "Axe" },
+         { name: "6x Cacti Clubs (Spike Burst)", tags: ["Explosive / AoE"], desc: "Heavy melee swings send spikes shooting outward, clearing distant targets.", bans: "Ranged Damage, Speed", unlocks: "Cacti Club" },
+         { name: "6x Rocks (Defense & HP Stacking)", tags: ["Immortal / Standstill"], desc: "Provides giant flat HP and Armor bonuses while taking advantage of melee cleave stats.", bans: "Ranged Damage, Speed", unlocks: "Rock" }
+       ]
+     },
+     {
+       name: "Hiker (DLC)", row: "Row 4",
+       builds: [
+         { name: "6x Slingshots (Stationary Bounce)", tags: ["Immortal / Standstill", "Ranged Cleaver"], desc: "Hiker gains passive bonuses based on distance traveled. Charge up your stats early in the wave, then park in the center and let Slingshots clear the map.", bans: "Melee Damage, Engineering", unlocks: "Slingshot" },
+         { name: "6x SMGs (Ranged Spray)", tags: ["Ranged Cleaver"], desc: "Position yourself once and spray high attack-speed projectiles across incoming waves.", bans: "Melee Damage, Engineering", unlocks: "SMG" },
+         { name: "6x Crossbows (Range Scaling)", tags: ["Ranged Cleaver"], desc: "High Range stat clears incoming enemies long before they reach your position.", bans: "Melee Damage, Engineering", unlocks: "Crossbow" },
+         { name: "6x Spears (Melee Keep-Away)", tags: ["Immortal / Standstill"], desc: "Extreme melee range holds enemies back from stepping inside your personal space.", bans: "Engineering, Ranged Damage", unlocks: "Spear" },
+         { name: "6x Shredders (Explosive Clear)", tags: ["Explosive / AoE"], desc: "Fires explosive rounds into high-density groups from a fixed defensive position.", bans: "Melee Damage, Life Steal", unlocks: "Shredder" }
+       ]
+     },
+     {
+       name: "Ogre (DLC)", row: "Row 4",
+       builds: [
+         { name: "6x Maces (Heavy Single-Hit Explosions)", tags: ["Explosive / AoE", "Immortal / Standstill"], desc: "Ogre explodes enemies when dealing massive single-hit damage. Mace hits for huge burst damage, causing screens of enemies to explode instantly.", bans: "Ranged Weapons, Attack Speed", unlocks: "Mace (Win with Ogre)" },
+         { name: "6x War Hammers (AoE Explosion Cleave)", tags: ["Explosive / AoE"], desc: "Sweeps huge groups, triggering multiple overkill explosions simultaneously.", bans: "Ranged Weapons, Attack Speed", unlocks: "War Hammer (Win with Dwarf)" },
+         { name: "6x Rocks (HP & Raw Damage Wall)", tags: ["Immortal / Standstill"], desc: "Stacks huge Max HP pools (which scale Ogre's explosion damage) and Armor.", bans: "Ranged Weapons, Attack Speed", unlocks: "Rock" },
+         { name: "6x Choppers (HP Scaling Cleave)", tags: ["Immortal / Standstill"], desc: "Chopper damage scales off Max HP, double-dipping into Ogre's HP explosion passive.", bans: "Ranged Weapons, Attack Speed", unlocks: "Chopper (Win with Multitasker)" },
+         { name: "6x Fist / Power Fist (Knockback Overkill)", tags: ["Immortal / Standstill"], desc: "Knocks enemies back while triggering massive single-hit damage explosions.", bans: "Ranged Weapons, Attack Speed", unlocks: "Power Fist (Win with Brawler)" }
+       ]
+     },
+     {
+       name: "Romantic (DLC)", row: "Row 4",
+       builds: [
+         { name: "6x Flutes (Charm & Stat Buff Engine)", tags: ["Immortal / Standstill"], desc: "Romantic thrives on high Luck and keeping Curse at 0. Flutes charm enemies into fighting for you while boosting stat scaling.", bans: "All Cursed Items, Ranged Damage", unlocks: "Flute (Win with Romantic)" },
+         { name: "6x Slingshots (Clean Wave Clear)", tags: ["Ranged Cleaver"], desc: "Bouncing attacks clear regular waves safely while avoiding Cursed item pickups.", bans: "All Cursed Items, Melee Damage", unlocks: "Slingshot" },
+         { name: "6x Scissors (Lifesteal Defense)", tags: ["Life Steal"], desc: "Sustains full HP continuously without relying on high-risk Cursed items.", bans: "All Cursed Items, Range", unlocks: "Scissors" },
+         { name: "6x Spears (Range Control)", tags: ["Immortal / Standstill"], desc: "Keeps enemies far away from your character model while maintaining zero Curse.", bans: "All Cursed Items, Engineering", unlocks: "Spear" },
+         { name: "6x Medical Guns (Overheal Turtle)", tags: ["Life Steal"], desc: "Provides reliable baseline healing to guarantee a clean, zero-Curse victory.", bans: "All Cursed Items, Melee Damage", unlocks: "Medical Gun" }
+       ]
+     }
+   ];
+
+   let currentSelectedTag = "ALL";
+
+   function renderCards() {
+     const grid = document.getElementById("characterGrid");
+     const query = document.getElementById("searchInput").value.toLowerCase();
+     const sort = document.getElementById("sortSelect").value;
+
+     grid.innerHTML = "";
+
+     let list = [...characterData];
+
+     if (sort === "name") {
+       list.sort((a, b) => a.name.localeCompare(b.name));
+     }
+
+     list.forEach((char) => {
+       const matchingBuilds = char.builds.filter((build) => {
+         const matchesTag = currentSelectedTag === "ALL" || build.tags.includes(currentSelectedTag);
+         const matchesSearch = query === "" ||
+           char.name.toLowerCase().includes(query) ||
+           build.name.toLowerCase().includes(query) ||
+           build.desc.toLowerCase().includes(query) ||
+           build.tags.some(t => t.toLowerCase().includes(query));
+         return matchesTag && matchesSearch;
+       });
+
+       if (matchingBuilds.length === 0) return;
+
+       const card = document.createElement("div");
+       card.className = "card";
+
+       let buildsHTML = matchingBuilds.map(b => `
+         <div class="build-item">
+           <div class="build-header">
+             <span class="build-name">${b.name}</span>
+             <div class="build-tags">
+               ${b.tags.map(t => `<span class="tag-pill">${t}</span>`).join('')}
+             </div>
+           </div>
+           <p class="build-desc">${b.desc}</p>
+           <div class="build-meta">
+             <span class="meta-box bans"><strong>Bans:</strong> ${b.bans}</span>
+             <span class="meta-box unlocks"><strong>Unlock:</strong> ${b.unlocks}</span>
+           </div>
+         </div>
+       `).join('');
+
+       card.innerHTML = `
+         <div class="card-header">
+           <div class="card-title">
+             <span>${char.name}</span>
+             <span class="row-badge">${char.row}</span>
+           </div>
+           <span class="toggle-icon">▼</span>
+         </div>
+         <div class="card-body">
+           <div class="build-list">
+             ${buildsHTML}
+           </div>
+         </div>
+       `;
+
+       card.querySelector('.card-header').addEventListener('click', () => {
+         card.classList.toggle('open');
+       });
+
+       grid.appendChild(card);
+     });
+   }
+
+   document.getElementById("searchInput").addEventListener("input", renderCards);
+   document.getElementById("sortSelect").addEventListener("change", renderCards);
+
+   document.getElementById("tagFilters").addEventListener("click", (e) => {
+     if (e.target.classList.contains("filter-chip")) {
+       document.querySelectorAll(".filter-chip").forEach(c => c.classList.remove("active"));
+       e.target.classList.add("active");
+       currentSelectedTag = e.target.getAttribute("data-tag");
+       renderCards();
+     }
+   });
+
+   renderCards();
+ </script>
+</body>
+</html>
